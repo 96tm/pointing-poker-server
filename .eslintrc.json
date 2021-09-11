@@ -1,0 +1,49 @@
+{
+  "root": true,
+  "env": {
+    "es2020": true,
+    "jasmine": true,
+    "jest": true,
+    "node": true
+  },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": ["./tsconfig.json"],
+    "tsconfigRootDir": ".",
+    "sourceType": "module",
+    "ecmaVersion": 2021,
+    "ecmaFeatures": {
+      "impliedStrict": true
+    }
+  },
+  "plugins": ["@typescript-eslint"],
+  "settings": {
+    "noInlineConfig": true,
+    "node": {
+      "tryExtensions": [".js", ".json", ".node", ".ts", ".d.ts"]
+    }
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:node/recommended",
+    "prettier"
+  ],
+  "rules": {
+    "node/no-unpublished-import": "off",
+    "import/extensions": "off",
+    "linebreak-style": "off",
+    "node/no-unsupported-features/es-syntax": "off",
+    "no-underscore-dangle": "off",
+    "import/prefer-default-export": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "no-process-exit": "off",
+    "node/no-unsupported-features/node-builtins": [
+      "error",
+      {
+        "version": ">=12.0.0",
+        "ignores": []
+      }
+    ]
+  }
+}
