@@ -23,6 +23,7 @@ type TGameParameters = Omit<IGame, 'players' | 'issues' | 'messages'> & {
 export class Game implements IDocument, IGame {
   id: string;
   currentIssueId: string;
+  dealerSocketId: string;
   status: TGameStatus;
   players: Collection<IUser>;
   issues: Collection<IIssue>;
@@ -34,14 +35,16 @@ export class Game implements IDocument, IGame {
 
   constructor({
     id,
+    dealerSocketId,
     currentIssueId,
     status,
     settings,
     players = [],
     messages = [],
     issues = [],
-  }: Partial<TGameParameters> = {}) {
+  }: Partial<TGameParameters> & Pick<TGameParameters, 'dealerSocketId'>) {
     this.id = id || uuid();
+    this.dealerSocketId = dealerSocketId;
     this.currentIssueId = currentIssueId || '';
     this.status = status || TGameStatus.inactive;
     this.players = new Users(players);

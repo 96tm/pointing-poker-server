@@ -17,11 +17,19 @@ export function cancelGame(socket: Socket) {
     console.log('cancel game');
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
     const dealer = await game.players.findOne({ id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
-      throw Error('Dealer not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Dealer not found',
+      });
+      return;
     }
     await DataService.Games.deleteOne({ id: gameId });
     socket.to(gameId).emit(SocketResponseEvents.gameCancelled);

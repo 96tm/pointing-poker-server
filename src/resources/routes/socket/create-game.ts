@@ -1,17 +1,19 @@
 import { StatusCodes } from 'http-status-codes';
+
 import { Socket } from 'socket.io';
 import { IClientCreateGameParameters } from '../../models/api';
 import { Game } from '../../models/entities/game';
 import { User } from '../../models/entities/user';
 import { TGameStatus } from '../../models/game';
 import { DataService } from '../../services/data-service';
+import { IResponseWS } from '../types';
 
-interface IClientCreateGameResult {
+interface IClientCreateGameResult extends IResponseWS {
   gameId: string;
   dealerId: string;
-  statusCode: StatusCodes;
 }
 // !add validation
+
 export function createGame(socket: Socket) {
   return async (
     {
@@ -21,7 +23,7 @@ export function createGame(socket: Socket) {
       gameId,
       dealerId,
       statusCode,
-    }: IClientCreateGameResult) => void
+    }: Partial<IClientCreateGameResult>) => void
   ) => {
     const dealer = new User({
       firstName,
@@ -31,10 +33,16 @@ export function createGame(socket: Socket) {
       jobPosition,
       socketId: socket.id,
     });
-    const game = new Game({ players: [dealer], status: TGameStatus.lobby });
+
+    const game = new Game({
+      players: [dealer],
+      status: TGameStatus.lobby,
+      dealerSocketId: socket.id,
+    });
     await DataService.Games.addMany([game]);
     console.log('create game', game.id);
     socket.join(game.id);
+
     acknowledge({
       gameId: game.id,
       dealerId: dealer.id,

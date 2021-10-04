@@ -1,11 +1,10 @@
 import { StatusCodes } from 'http-status-codes';
 import { Socket } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
-import { IGame } from '../../models/game';
 import { IIssue } from '../../models/issue';
 import { TUserRole } from '../../models/user';
 import { DataService } from '../../services/data-service';
-import { IResponseWS } from '../types';
+import { IResponseWS, SocketResponseEvents } from '../types';
 
 export interface IClientUpdateIssueParameters extends IClientRequestParameters {
   dealerId: string;
@@ -21,14 +20,24 @@ export function updateIssue(socket: Socket) {
 
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
     const dealer = await game.players.findOne({ id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
-      throw Error('Dealer not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Dealer not found',
+      });
+      return;
     }
     await game.issues.updateMany({ id: updatedIssue.id }, updatedIssue);
-    socket.to(game.id).emit('issueUpdated', { updatedIssue });
+    socket
+      .to(game.id)
+      .emit(SocketResponseEvents.issueUpdated, { updatedIssue });
     acknowledge({
       statusCode: StatusCodes.OK,
     });

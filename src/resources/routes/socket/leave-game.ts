@@ -15,12 +15,20 @@ export function leaveGame(socketIOServer: Server) {
   ) => {
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
     const player = await game.players.findOne({ id: playerId });
     console.log('leave game', playerId);
     if (!player) {
-      throw Error('Player not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Player not found',
+      });
+      return;
     }
     await game.players.deleteOne({ id: playerId });
     socketIOServer.in(gameId).emit(SocketResponseEvents.playerLeft, {

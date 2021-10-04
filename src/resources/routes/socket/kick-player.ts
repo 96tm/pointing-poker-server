@@ -16,20 +16,35 @@ export function kickPlayer(socketIOServer: Server) {
     acknowledge: ({ statusCode }: IResponseWS) => void
   ) => {
     console.log('kick player');
-
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
     const player = await game.players.findOne({ id: kickedPlayerId });
     if (!player) {
-      throw Error('Player not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Player not found',
+      });
+      return;
     } else if (player.role === TUserRole.dealer) {
-      throw Error(`Can't kick the dealer`);
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: `Can't kick the dealer`,
+      });
+      return;
     }
     const dealer = await game.players.findOne({ id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
-      throw Error('Dealer not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Dealer not found',
+      });
+      return;
     }
     game.players.deleteOne({ id: kickedPlayerId });
     socketIOServer.in(gameId).emit(SocketResponseEvents.playerKicked, {

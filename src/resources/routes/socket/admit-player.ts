@@ -16,21 +16,36 @@ export interface IClientAdmitPlayerParameters extends IClientRequestParameters {
 export function admitPlayer(socketIOServer: Server) {
   return async (
     { gameId }: IClientAdmitPlayerParameters,
-    acknowledge: ({ statusCode, playerId }: IAdmitPlayerResponseWS) => void
+    acknowledge: ({
+      statusCode,
+      playerId,
+    }: Partial<IAdmitPlayerResponseWS>) => void
   ) => {
     console.log('admit player');
 
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
     const dealer = await game.players.findOne({ role: TUserRole.dealer });
     if (!dealer) {
-      throw Error('Dealer not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Dealer not found',
+      });
+      return;
     }
     const addedPlayer = await game.popEntryRequest();
     if (!addedPlayer) {
-      throw Error('Entry queue is empty');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Entry queue is empty',
+      });
+      return;
     }
     game.players.addMany([addedPlayer]);
     socketIOServer
@@ -40,8 +55,6 @@ export function admitPlayer(socketIOServer: Server) {
     const players = await game.players.getAll();
     const messages = await game.messages.getAll();
     const issues = await game.issues.getAll();
-    console.log('sending', addedPlayer.socketId, game.settings);
-
     socketIOServer
       .to(addedPlayer.socketId)
       .emit(SocketResponseEvents.playerAdmitted, {

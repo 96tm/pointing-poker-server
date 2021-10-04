@@ -22,11 +22,18 @@ export function addPlayer(socketIOServer: Server, socket: Socket) {
       addedPlayer: { firstName, lastName, image, role, jobPosition },
       gameId,
     }: IClientAddPlayerParameters,
-    acknowledge: ({ statusCode, playerId }: IAddPlayerResponseWS) => void
+    acknowledge: ({
+      statusCode,
+      playerId,
+    }: Partial<IAddPlayerResponseWS>) => void
   ) => {
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
     const player = new User({
       firstName,
@@ -38,7 +45,11 @@ export function addPlayer(socketIOServer: Server, socket: Socket) {
     });
     const dealer = await game.players.findOne({ role: TUserRole.dealer });
     if (!dealer) {
-      throw Error('Dealer not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Dealer not found',
+      });
+      return;
     }
     socket.join(game.id);
     if (
@@ -64,8 +75,6 @@ export function addPlayer(socketIOServer: Server, socket: Socket) {
       const players = await game.players.getAll();
       const messages = await game.messages.getAll();
       const issues = await game.issues.getAll();
-      console.log('send settings', game.settings);
-
       socketIOServer.to(socket.id).emit(SocketResponseEvents.playerAdmitted, {
         playerId: player.id,
         players,

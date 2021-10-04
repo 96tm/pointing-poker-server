@@ -11,6 +11,7 @@ import { deleteIssue } from './resources/routes/socket/delete-issue';
 import { finishGame } from './resources/routes/socket/finish-game';
 import { finishRound } from './resources/routes/socket/finish-round';
 import { getNextIssue } from './resources/routes/socket/get-next-issue';
+import { handleDisconnect } from './resources/routes/socket/handle-disconnect';
 import { kickPlayer } from './resources/routes/socket/kick-player';
 import { leaveGame } from './resources/routes/socket/leave-game';
 import { postMessage } from './resources/routes/socket/post-message';
@@ -31,13 +32,8 @@ const socketIOServer = new SocketIOServer(httpServer, {
   },
 });
 
-// export const dealerNamespace = socketIOServer.of('/dealer');
-
-// dealerNamespace.on('connection', (socket) => {
-//   socket.on(SocketRequestEvents.createGame, createGame(socket));
-// });
-
 socketIOServer.on('connection', (socket) => {
+  socket.on('disconnecting', handleDisconnect(socketIOServer, socket));
   socket.on(SocketRequestEvents.createGame, createGame(socket));
   socket.on(SocketRequestEvents.scoreIssue, scoreIssue(socketIOServer));
   socket.on(SocketRequestEvents.addPlayer, addPlayer(socketIOServer, socket));

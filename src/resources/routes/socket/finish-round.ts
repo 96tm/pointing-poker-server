@@ -17,15 +17,27 @@ export function finishRound(socketIOServer: Server) {
     console.log('finish round');
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
     const dealer = await game.players.findOne({ id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
-      throw Error('Dealer not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Dealer not found',
+      });
+      return;
     }
     const issue = await game.issues.findOne({ id: game.currentIssueId });
     if (!issue) {
-      throw Error('Current issue not set');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Current issue not set',
+      });
+      return;
     }
     await game.finishRound();
 

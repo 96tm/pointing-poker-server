@@ -17,26 +17,29 @@ export function startRound(socketIOServer: Server) {
     acknowledge: ({ statusCode }: IResponseWS) => void
   ) => {
     console.log('start round', dealerId);
-
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
     const dealer = await game.players.findOne({ id: dealerId });
-    console.log(
-      'dealer',
-      dealer,
-      dealer?.role,
-      TUserRole.dealer,
-      dealer?.role !== TUserRole.dealer
-    );
-
     if (dealer?.role !== TUserRole.dealer) {
-      throw Error('Dealer not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Dealer not found',
+      });
+      return;
     }
     const issue = await game.issues.findOne({ id: game.currentIssueId });
     if (!issue) {
-      throw Error('Issue not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Issue not found',
+      });
+      return;
     }
     // reset issue score when round starts
     issue.lastRoundResult = {};

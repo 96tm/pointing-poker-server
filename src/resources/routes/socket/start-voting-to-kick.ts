@@ -25,21 +25,33 @@ export function startVotingToKick(socket: Socket) {
 
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
     const players = await game.players.getAll();
     const playerToKick = players.find((player) => player.id === kickedPlayerId);
     if (!playerToKick) {
-      throw Error('Player not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Player not found',
+      });
+      return;
     } else if (playerToKick.role === TUserRole.dealer) {
-      throw Error(`Can't kick dealer`);
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: `Can't kick the dealer`,
+      });
+      return;
     }
     const votingPlayers = players.filter((player) => {
       return player.role === TUserRole.player;
     });
     if (votingPlayers.length < MIN_NUMBER_OF_PLAYERS_TO_VOTE) {
       acknowledge({
-        statusCode: 400,
+        statusCode: StatusCodes.BAD_REQUEST,
         message: 'Not enough players to vote',
       });
     } else if (!game.votingKick.inProgress) {
@@ -49,9 +61,6 @@ export function startVotingToKick(socket: Socket) {
         votingPlayers.length
       );
       game.votingKick.voteFor();
-
-      console.log(game.votingKick);
-
       socket.to(gameId).emit(SocketResponseEvents.votingToKickStarted, {
         votingPlayerId,
         kickedPlayerId,
@@ -61,10 +70,9 @@ export function startVotingToKick(socket: Socket) {
       });
     } else {
       acknowledge({
-        statusCode: 409,
-        message: 'Voting in progress, please wait until it ends',
+        statusCode: StatusCodes.CONFLICT,
+        message: 'Voting in progress, please wait until it ends and try again',
       });
     }
-    //! add check
   };
 }

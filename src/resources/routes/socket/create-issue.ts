@@ -20,24 +20,31 @@ export interface ICreateIssueResponse extends IResponseWS {
 export function createIssue(socket: Socket) {
   return async (
     { dealerId, addedIssue, gameId }: IClientCreateIssueParameters,
-    acknowledge: ({ statusCode, issueId }: ICreateIssueResponse) => void
+    acknowledge: ({
+      statusCode,
+      issueId,
+    }: Partial<ICreateIssueResponse>) => void
   ) => {
     const games = await DataService.Games.getAll();
     console.log('create issue, game id: ', gameId, games);
-
     const issue = new Issue({ ...addedIssue });
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
     const dealer = await game.players.findOne({ id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
-      throw Error('Dealer not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Dealer not found',
+      });
+      return;
     }
     await game.issues.addMany([issue]);
-    const issues = await game.issues.getAll();
-    console.log('issues total', issues.length);
-
     socket
       .to(game.id)
       .emit(SocketResponseEvents.issueCreated, { addedIssue: issue });
@@ -46,11 +53,5 @@ export function createIssue(socket: Socket) {
       issueId: issue.id,
       statusCode: StatusCodes.OK,
     });
-    // if (issues.length === 1) {
-    //   game.currentIssueId = issue.id;
-    //   socketIOServer
-    //     .in(gameId)
-    //     .emit(SocketResponseEvents.currentIssueChanged, { issueId: issue.id });
-    // }
   };
 }

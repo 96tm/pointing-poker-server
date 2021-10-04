@@ -27,21 +27,33 @@ export function rejectPlayer(socketIOServer: Server) {
       lastName,
       role,
       jobPosition,
-    }: IRejectPlayerResponseWS) => void
+    }: Partial<IRejectPlayerResponseWS>) => void
   ) => {
     console.log('reject player');
 
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
     const dealer = await game.players.findOne({ role: TUserRole.dealer });
     if (!dealer) {
-      throw Error('Dealer not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Dealer not found',
+      });
+      return;
     }
     const rejectedPlayer = await game.popEntryRequest();
     if (!rejectedPlayer) {
-      throw Error('Entry queue is empty');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Entry queue is empty',
+      });
+      return;
     }
     socketIOServer
       .to(rejectedPlayer.socketId)

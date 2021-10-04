@@ -27,9 +27,12 @@ export function scoreIssue(socketIOServer: Server) {
 
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
-
     const numberOfActivePlayers = await (await game.getActivePlayers()).length;
     let numberOfScores = 0;
     let totalScore = 0;
@@ -47,13 +50,10 @@ export function scoreIssue(socketIOServer: Server) {
         totalScore,
       } = await game.scoreCurrentIssue(playerId, score));
     }
-    console.log('active players: ', numberOfActivePlayers);
     if (
       game.settings.canScoreAfterFlip &&
       game.status === TGameStatus.started
     ) {
-      console.log('score changed after flip', issueId, roundResult, totalScore);
-
       socketIOServer.in(gameId).emit(SocketResponseEvents.issueScoreUpdated, {
         issueId,
         roundResult,
@@ -67,7 +67,6 @@ export function scoreIssue(socketIOServer: Server) {
       game.settings.autoFlipCards
     ) {
       console.log('round finished');
-
       await game.finishRound();
       socketIOServer.in(gameId).emit(SocketResponseEvents.roundFinished, {
         issueId,

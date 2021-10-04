@@ -18,20 +18,32 @@ export interface IClientDeleteIssueParameters extends IClientRequestParameters {
 export function deleteIssue(socketIOServer: Server, socket: Socket) {
   return async (
     { deletedIssueId, gameId, dealerId }: IClientDeleteIssueParameters,
-    acknowledge: ({ statusCode }: IDeleteIssueResponseWS) => void
+    acknowledge: ({ statusCode }: Partial<IDeleteIssueResponseWS>) => void
   ) => {
     console.log('delete issue');
     const game = (await DataService.Games.findOne({ id: gameId })) as IGame;
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
     const issue = await game.issues.findOne({ id: deletedIssueId });
     if (!issue) {
-      throw Error('Issue not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Issue not found',
+      });
+      return;
     }
     const dealer = await game.players.findOne({ id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
-      throw Error('Dealer not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Dealer not found',
+      });
+      return;
     }
     await game.issues.deleteOne({ id: deletedIssueId });
     const issues = await game.issues.getAll();
@@ -41,12 +53,10 @@ export function deleteIssue(socketIOServer: Server, socket: Socket) {
         .in(gameId)
         .emit(SocketResponseEvents.currentIssueChanged, { issueId: '' });
     }
-    socket
-      .to(game.id)
-      .emit(SocketResponseEvents.issueDeleted, {
-        deletedIssueId,
-        title: issue.title,
-      });
+    socket.to(game.id).emit(SocketResponseEvents.issueDeleted, {
+      deletedIssueId,
+      title: issue.title,
+    });
     acknowledge({
       statusCode: StatusCodes.OK,
       gameId,

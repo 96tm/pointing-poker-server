@@ -22,6 +22,7 @@ export interface IScoreIssueResult {
 export interface IGame {
   id: string;
   currentIssueId: string;
+  dealerSocketId: string;
   status: TGameStatus;
   players: Collection<IUser>;
   issues: Collection<IIssue>;

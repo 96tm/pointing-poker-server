@@ -2,7 +2,6 @@ import { IIssue } from './issue';
 import { IMessage } from './message';
 import { IUser } from './user';
 import { StatusCodes } from 'http-status-codes';
-import { IGameSettings } from './game-settings';
 
 export interface IClientRequestParameters {
   gameId: string;

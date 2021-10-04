@@ -2,7 +2,6 @@ import { StatusCodes } from 'http-status-codes';
 import { Socket } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
 import { Message } from '../../models/entities/message';
-import { IGame } from '../../models/game';
 import { IMessage } from '../../models/message';
 import { DataService } from '../../services/data-service';
 import { IResponseWS } from '../types';
@@ -23,9 +22,26 @@ export function postMessage(socket: Socket) {
       statusCode,
       messageId,
       gameId,
-    }: IAddPlayerResponseWS) => void
+    }: Partial<IAddPlayerResponseWS>) => void
   ) => {
-    const game = (await DataService.Games.findOne({ id: gameId })) as IGame;
+    const game = await DataService.Games.findOne({ id: gameId });
+    if (!game) {
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+        gameId,
+      });
+      return;
+    }
+    const player = game.players.findOne({ id: gameId });
+    if (!player) {
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Player not found',
+        gameId,
+      });
+      return;
+    }
     const postedMessage = new Message({ userId, message });
     game.messages.addMany([postedMessage]);
     socket

@@ -14,24 +14,31 @@ export interface IClientVoteToKickParameters extends IClientRequestParameters {
 
 export function voteToKick(socketIOServer: Server) {
   return async (
-    {
-      // votingPlayerId,
-      kickedPlayerId,
-      accept,
-      gameId,
-    }: IClientVoteToKickParameters,
+    { kickedPlayerId, accept, gameId }: IClientVoteToKickParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
   ) => {
     console.log('vote to kick player');
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
-      throw Error('Game not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Game not found',
+      });
+      return;
     }
     const player = await game.players.findOne({ id: kickedPlayerId });
     if (!player) {
-      throw Error('Player not found');
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Player not found',
+      });
+      return;
     } else if (player.role === TUserRole.dealer) {
-      throw Error(`Can't kick the dealer`);
+      acknowledge({
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: `Can't kick the dealer`,
+      });
+      return;
     }
     if (game.votingKick.inProgress) {
       accept ? game.votingKick.voteFor() : game.votingKick.voteAgainst();
