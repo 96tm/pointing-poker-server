@@ -2,6 +2,7 @@ import { StatusCodes } from 'http-status-codes';
 import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
 import { TUserRole } from '../../models/user';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -16,7 +17,7 @@ export function getNextIssue(socketIOServer: Server) {
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
     console.log('get next issue');
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId });
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -24,7 +25,7 @@ export function getNextIssue(socketIOServer: Server) {
       });
       return;
     }
-    const dealer = await game.players.findOne({ id: dealerId });
+    const dealer = await UserModel.findOne({ game: gameId, _id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -34,7 +35,7 @@ export function getNextIssue(socketIOServer: Server) {
     }
     const nextIssue = await game.getNextIssue();
     socketIOServer.in(gameId).emit(SocketResponseEvents.currentIssueChanged, {
-      issueId: nextIssue?.id || '',
+      issueId: nextIssue?._id || '',
     });
     acknowledge({ statusCode: StatusCodes.OK });
   };

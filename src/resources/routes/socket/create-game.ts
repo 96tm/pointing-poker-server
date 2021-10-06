@@ -1,11 +1,9 @@
 import { StatusCodes } from 'http-status-codes';
-
 import { Socket } from 'socket.io';
 import { IClientCreateGameParameters } from '../../models/api';
-import { Game } from '../../models/entities/game';
-import { User } from '../../models/entities/user';
-import { TGameStatus } from '../../models/game';
-import { DataService } from '../../services/data-service';
+import { TGameStatus } from '../../models/types';
+import { GameModel } from '../../repository/mongo/entities/game';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { IResponseWS } from '../types';
 
 interface IClientCreateGameResult extends IResponseWS {
@@ -25,7 +23,7 @@ export function createGame(socket: Socket) {
       statusCode,
     }: Partial<IClientCreateGameResult>) => void
   ): Promise<void> => {
-    const dealer = new User({
+    const dealer = new UserModel({
       firstName,
       lastName,
       image,
@@ -33,19 +31,18 @@ export function createGame(socket: Socket) {
       jobPosition,
       socketId: socket.id,
     });
-
-    const game = new Game({
+    const game = new GameModel({
       players: [dealer],
       status: TGameStatus.lobby,
       dealerSocketId: socket.id,
     });
-    await DataService.Games.addMany([game]);
-    console.log('create game', game.id);
-    socket.join(game.id);
+    await game.save();
+    console.log('create game', game._id);
+    socket.join(game._id);
 
     acknowledge({
-      gameId: game.id,
-      dealerId: dealer.id,
+      gameId: game._id,
+      dealerId: dealer._id,
       statusCode: StatusCodes.OK,
     });
   };

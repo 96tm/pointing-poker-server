@@ -1,9 +1,9 @@
 import { StatusCodes } from 'http-status-codes';
 import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
-import { User } from '../../models/entities/user';
 import { IUser, TUserRole } from '../../models/user';
 import { TVotingResult } from '../../models/voting-kick';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -18,7 +18,9 @@ export function voteToKick(socketIOServer: Server) {
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
     console.log('vote to kick player');
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId }).populate(
+      'players'
+    );
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -26,7 +28,10 @@ export function voteToKick(socketIOServer: Server) {
       });
       return;
     }
-    const player = await game.players.findOne({ id: kickedPlayerId });
+    const player = await UserModel.findOne({
+      game: gameId,
+      _id: kickedPlayerId,
+    });
     if (!player) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -43,17 +48,17 @@ export function voteToKick(socketIOServer: Server) {
     if (game.votingKick.inProgress) {
       accept ? game.votingKick.voteFor() : game.votingKick.voteAgainst();
       console.log('vote ', game.votingKick);
-      const votingPlayer = await game.players.findOne({
-        id: game.votingKick.votingPlayerId,
+      const votingPlayer = await UserModel.findOne({
+        game: gameId,
+        _id: game.votingKick.votingPlayerId,
       });
       let playerInfo: IUser | undefined;
       if (votingPlayer) {
-        playerInfo = new User(votingPlayer);
-        console.log('found player', playerInfo);
+        playerInfo = { ...votingPlayer };
       }
       const result = game.votingKick.checkResult();
       if (result === TVotingResult.accept) {
-        await game.players.deleteMany({ id: kickedPlayerId });
+        await game.players.deleteMany({ _id: kickedPlayerId });
         socketIOServer
           .in(gameId)
           .emit(SocketResponseEvents.playerKickedByVote, {
@@ -68,10 +73,7 @@ export function voteToKick(socketIOServer: Server) {
           statusCode: StatusCodes.OK,
         });
       } else if (result === TVotingResult.decline) {
-        console.log('decline here');
         if (playerInfo) {
-          console.log('playerInfo', playerInfo, 'player', player);
-          console.log('bf emit');
           socketIOServer
             .to(gameId)
             .except(player.socketId)

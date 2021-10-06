@@ -2,6 +2,8 @@ import { StatusCodes } from 'http-status-codes';
 import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
 import { TUserRole } from '../../models/user';
+import { IssueModel } from '../../repository/mongo/entities/issue';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -15,7 +17,7 @@ export function finishRound(socketIOServer: Server) {
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
     console.log('finish round');
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId });
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -23,7 +25,7 @@ export function finishRound(socketIOServer: Server) {
       });
       return;
     }
-    const dealer = await game.players.findOne({ id: dealerId });
+    const dealer = await UserModel.findOne({ game: gameId, _id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -31,7 +33,10 @@ export function finishRound(socketIOServer: Server) {
       });
       return;
     }
-    const issue = await game.issues.findOne({ id: game.currentIssueId });
+    const issue = await IssueModel.findOne({
+      game: gameId,
+      _id: game.currentIssueId,
+    });
     if (!issue) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -42,7 +47,7 @@ export function finishRound(socketIOServer: Server) {
     await game.finishRound();
 
     socketIOServer.in(gameId).emit(SocketResponseEvents.roundFinished, {
-      issueId: issue.id,
+      issueId: issue._id,
       roundResult: issue.lastRoundResult,
       totalScore: issue.score,
     });

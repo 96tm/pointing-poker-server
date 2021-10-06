@@ -1,6 +1,8 @@
 import { StatusCodes } from 'http-status-codes';
 import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
+import { IUser } from '../../models/user';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -13,7 +15,7 @@ export function leaveGame(socketIOServer: Server) {
     { playerId, gameId }: IClientLeaveGameParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId });
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -21,7 +23,7 @@ export function leaveGame(socketIOServer: Server) {
       });
       return;
     }
-    const player = await game.players.findOne({ id: playerId });
+    const player = await UserModel.findOne({ game: gameId, _id: playerId });
     console.log('leave game', playerId);
     if (!player) {
       acknowledge({
@@ -30,10 +32,10 @@ export function leaveGame(socketIOServer: Server) {
       });
       return;
     }
-    await game.players.deleteOne({ id: playerId });
+    await UserModel.deleteOne({ game: gameId, _id: playerId });
     if (game.votingKick) {
       game.votingKick.votingPlayers = game.votingKick.votingPlayers.filter(
-        (player) => player.id !== playerId
+        (player: IUser) => player._id !== playerId
       );
     }
     socketIOServer.in(gameId).emit(SocketResponseEvents.playerLeft, {

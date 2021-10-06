@@ -2,7 +2,8 @@ import { StatusCodes } from 'http-status-codes';
 import { Socket } from 'socket.io';
 import { MIN_NUMBER_OF_PLAYERS_TO_VOTE } from '../../../shared/config';
 import { IClientRequestParameters } from '../../models/api';
-import { TUserRole } from '../../models/user';
+import { IUser, TUserRole } from '../../models/user';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -23,7 +24,7 @@ export function startVotingToKick(socket: Socket) {
   ): Promise<void> => {
     console.log('start voting to kick player');
 
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId });
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -31,8 +32,10 @@ export function startVotingToKick(socket: Socket) {
       });
       return;
     }
-    const players = await game.players.getAll();
-    const playerToKick = players.find((player) => player.id === kickedPlayerId);
+    const players = await UserModel.find({ game: gameId });
+    const playerToKick = players.find(
+      (player: IUser) => player._id === kickedPlayerId
+    );
     if (!playerToKick) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -46,8 +49,8 @@ export function startVotingToKick(socket: Socket) {
       });
       return;
     }
-    const votingPlayers = players.filter((player) => {
-      return player.role === TUserRole.player && player.id !== kickedPlayerId;
+    const votingPlayers = players.filter((player: IUser) => {
+      return player.role === TUserRole.player && player._id !== kickedPlayerId;
     });
     if (votingPlayers.length + 1 < MIN_NUMBER_OF_PLAYERS_TO_VOTE) {
       acknowledge({

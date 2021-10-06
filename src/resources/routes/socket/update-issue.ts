@@ -3,6 +3,8 @@ import { Socket } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
 import { IIssue } from '../../models/issue';
 import { TUserRole } from '../../models/user';
+import { IssueModel } from '../../repository/mongo/entities/issue';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -18,7 +20,7 @@ export function updateIssue(socket: Socket) {
   ): Promise<void> => {
     console.log('update issue');
 
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId });
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -26,7 +28,7 @@ export function updateIssue(socket: Socket) {
       });
       return;
     }
-    const dealer = await game.players.findOne({ id: dealerId });
+    const dealer = await UserModel.findOne({ game: gameId, _id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -34,7 +36,13 @@ export function updateIssue(socket: Socket) {
       });
       return;
     }
-    await game.issues.updateMany({ id: updatedIssue.id }, updatedIssue);
+    const issue = await IssueModel.findOne({
+      game: gameId,
+      _id: (updatedIssue as IIssue & { id: string }).id,
+    });
+    Object.assign(issue, updatedIssue);
+    await issue.save();
+    // await game.issues.updateMany({ id: updatedIssue.id }, updatedIssue);
     socket
       .to(game.id)
       .emit(SocketResponseEvents.issueUpdated, { updatedIssue });

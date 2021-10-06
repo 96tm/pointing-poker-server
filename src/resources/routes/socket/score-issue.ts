@@ -2,8 +2,8 @@ import { StatusCodes } from 'http-status-codes';
 import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
 import { TCardScore } from '../../models/card';
-import { TGameStatus } from '../../models/game';
 import { TRoundResult } from '../../models/issue';
+import { TGameStatus } from '../../models/types';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -25,7 +25,7 @@ export function scoreIssue(socketIOServer: Server) {
   ): Promise<void> => {
     console.log('score issue', score);
 
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId });
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,

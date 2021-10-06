@@ -1,9 +1,10 @@
 import { StatusCodes } from 'http-status-codes';
-import { Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
-import { TGameStatus } from '../../models/game';
 import { IGameSettings } from '../../models/game-settings';
+import { TGameStatus } from '../../models/types';
 import { TUserRole } from '../../models/user';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -12,13 +13,13 @@ export interface IClientStartGameParameters extends IClientRequestParameters {
   dealerId: string;
 }
 
-export function startGame(socket: Socket) {
+export function startGame(socketIOServer: Server) {
   return async (
     { dealerId, settings, gameId }: IClientStartGameParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
     console.log('start game');
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId });
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -26,11 +27,10 @@ export function startGame(socket: Socket) {
       });
       return;
     }
-    await DataService.Games.updateMany(
-      { id: gameId },
-      { status: TGameStatus.started, settings: settings }
-    );
-    const dealer = await game.players.findOne({ id: dealerId });
+    Object.assign(game, { status: TGameStatus.started, settings: settings });
+    await game.save();
+
+    const dealer = await UserModel.findOne({ game: gameId, _id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -38,7 +38,11 @@ export function startGame(socket: Socket) {
       });
       return;
     }
-    socket.to(gameId).emit(SocketResponseEvents.gameStarted, { settings });
+    console.log('started');
+
+    socketIOServer
+      .in(gameId)
+      .emit(SocketResponseEvents.gameStarted, { settings });
     acknowledge({
       statusCode: StatusCodes.OK,
     });

@@ -1,8 +1,9 @@
 import { StatusCodes } from 'http-status-codes';
 import { Socket } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
-import { Message } from '../../models/entities/message';
 import { IMessage } from '../../models/message';
+import { MessageModel } from '../../repository/mongo/entities/message';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS } from '../types';
 
@@ -24,7 +25,7 @@ export function postMessage(socket: Socket) {
       gameId,
     }: Partial<IPostMessageResponseWS>) => void
   ): Promise<void> => {
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId });
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -33,7 +34,7 @@ export function postMessage(socket: Socket) {
       });
       return;
     }
-    const player = game.players.findOne({ id: gameId });
+    const player = UserModel.findOne({ game: gameId, _id: gameId });
     if (!player) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -42,14 +43,16 @@ export function postMessage(socket: Socket) {
       });
       return;
     }
-    const postedMessage = new Message({ userId, message });
-    game.messages.addMany([postedMessage]);
+    const postedMessage = new MessageModel({ userId, message });
+    await postedMessage.save();
+    game.messages.push(postedMessage);
+    await game.save();
     socket
       .to(gameId)
-      .emit('messagePosted', { message, messageId: postedMessage.id, userId });
+      .emit('messagePosted', { message, messageId: postedMessage._id, userId });
     acknowledge({
       statusCode: StatusCodes.OK,
-      messageId: postedMessage.id,
+      messageId: postedMessage._id,
       gameId,
     });
   };

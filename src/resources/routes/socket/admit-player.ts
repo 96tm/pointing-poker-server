@@ -1,7 +1,12 @@
 import { StatusCodes } from 'http-status-codes';
 import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
-import { TUserRole } from '../../models/user';
+import { IIssue } from '../../models/issue';
+import { IMessage } from '../../models/message';
+import { IUser, TUserRole } from '../../models/user';
+import { IssueModel } from '../../repository/mongo/entities/issue';
+import { MessageModel } from '../../repository/mongo/entities/message';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -22,8 +27,9 @@ export function admitPlayer(socketIOServer: Server) {
     }: Partial<IAdmitPlayerResponseWS>) => void
   ): Promise<void> => {
     console.log('admit player');
-
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId }).populate(
+      'players'
+    );
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -31,7 +37,10 @@ export function admitPlayer(socketIOServer: Server) {
       });
       return;
     }
-    const dealer = await game.players.findOne({ role: TUserRole.dealer });
+    const dealer = await UserModel.findOne({
+      game: gameId,
+      role: TUserRole.dealer,
+    });
     if (!dealer) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -47,18 +56,30 @@ export function admitPlayer(socketIOServer: Server) {
       });
       return;
     }
-    game.players.addMany([addedPlayer]);
+    const addedUserModel = new UserModel(addedPlayer);
+    await addedUserModel.save();
+    await game.players.push(addedUserModel);
+    await game.save();
     socketIOServer
       .in(gameId)
       .except(addedPlayer.socketId)
-      .emit(SocketResponseEvents.playerAdded, { addedPlayer });
-    const players = await game.players.getAll();
-    const messages = await game.messages.getAll();
-    const issues = await game.issues.getAll();
+      .emit(SocketResponseEvents.playerAdded, {
+        ...addedPlayer,
+        id: addedPlayer._id,
+      });
+    const players = ((await UserModel.find({
+      game: gameId,
+    })) as IUser[]).map((player) => ({ ...player, id: player._id }));
+    const messages = ((await MessageModel.find({
+      game: gameId,
+    })) as IMessage[]).map((message) => ({ ...message, id: message._id }));
+    const issues = ((await IssueModel.find({
+      game: gameId,
+    })) as IIssue[]).map((issue) => ({ ...issue, id: issue._id }));
     socketIOServer
       .to(addedPlayer.socketId)
       .emit(SocketResponseEvents.playerAdmitted, {
-        playerId: addedPlayer.id,
+        playerId: addedPlayer._id,
         players,
         issues,
         messages,

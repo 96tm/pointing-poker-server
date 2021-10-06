@@ -1,13 +1,11 @@
-import {
-  Users,
-  Games,
-  Messages,
-  Issues,
-} from '../repository/repository.memory';
+import { GameModel } from '../repository/mongo/entities/game';
+import { IssueModel } from '../repository/mongo/entities/issue';
+import { MessageModel } from '../repository/mongo/entities/message';
+import { UserModel } from '../repository/mongo/entities/user';
 
 export const DataService = {
-  Users: new Users([]),
-  Games: new Games([]),
-  Messages: new Messages([]),
-  Issues: new Issues([]),
+  Users: UserModel,
+  Games: GameModel,
+  Messages: MessageModel,
+  Issues: IssueModel,
 };

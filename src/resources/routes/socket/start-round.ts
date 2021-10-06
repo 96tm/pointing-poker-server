@@ -3,6 +3,8 @@ import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
 import { TCardScore } from '../../models/card';
 import { TUserRole } from '../../models/user';
+import { IssueModel } from '../../repository/mongo/entities/issue';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -17,7 +19,7 @@ export function startRound(socketIOServer: Server) {
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
     console.log('start round', dealerId);
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId });
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -25,7 +27,7 @@ export function startRound(socketIOServer: Server) {
       });
       return;
     }
-    const dealer = await game.players.findOne({ id: dealerId });
+    const dealer = await UserModel.findOne({ game: gameId, _id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -33,7 +35,10 @@ export function startRound(socketIOServer: Server) {
       });
       return;
     }
-    const issue = await game.issues.findOne({ id: game.currentIssueId });
+    const issue = await IssueModel.findOne({
+      game: gameId,
+      _id: game.currentIssueId,
+    });
     if (!issue) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -44,15 +49,16 @@ export function startRound(socketIOServer: Server) {
     // reset issue score when round starts
     issue.lastRoundResult = {};
     issue.score = 0;
+    await issue.save();
     socketIOServer.in(gameId).emit(SocketResponseEvents.issueScoreUpdated, {
-      issueId: issue.id,
+      issueId: issue._id,
       roundResult: issue.lastRoundResult,
       totalScore: 0,
     });
     game.startRound(async () => {
       if (game.settings.autoFlipCardsByTimer) {
         socketIOServer.in(gameId).emit(SocketResponseEvents.roundFinished, {
-          issueId: issue.id,
+          issueId: issue._id,
           roundResult: issue.lastRoundResult,
           totalScore: issue.score,
         });

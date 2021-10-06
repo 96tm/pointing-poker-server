@@ -2,6 +2,7 @@ import { StatusCodes } from 'http-status-codes';
 import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
 import { TUserRole } from '../../models/user';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -15,7 +16,7 @@ export function cancelGame(socketIOServer: Server) {
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
     console.log('cancel game');
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId });
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -23,7 +24,7 @@ export function cancelGame(socketIOServer: Server) {
       });
       return;
     }
-    const dealer = await game.players.findOne({ id: dealerId });
+    const dealer = await UserModel.findOne({ _id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -31,8 +32,10 @@ export function cancelGame(socketIOServer: Server) {
       });
       return;
     }
-    await DataService.Games.deleteOne({ id: gameId });
+    await DataService.Games.deleteOne({ _id: gameId });
     socketIOServer.in(gameId).emit(SocketResponseEvents.gameCancelled);
+    socketIOServer.in(gameId).socketsLeave(gameId);
+
     acknowledge({
       statusCode: StatusCodes.OK,
     });

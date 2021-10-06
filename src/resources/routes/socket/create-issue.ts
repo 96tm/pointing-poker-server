@@ -1,9 +1,10 @@
 import { StatusCodes } from 'http-status-codes';
 import { Socket } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
-import { Issue } from '../../models/entities/issue';
 import { IIssue } from '../../models/issue';
 import { TUserRole } from '../../models/user';
+import { IssueModel } from '../../repository/mongo/entities/issue';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -25,10 +26,10 @@ export function createIssue(socket: Socket) {
       issueId,
     }: Partial<ICreateIssueResponse>) => void
   ): Promise<void> => {
-    const games = await DataService.Games.getAll();
-    console.log('create issue, game id: ', gameId, games);
-    const issue = new Issue({ ...addedIssue });
-    const game = await DataService.Games.findOne({ id: gameId });
+    const issue = new IssueModel({ ...addedIssue });
+    const game = await DataService.Games.findOne({ _id: gameId }).populate(
+      'issues'
+    );
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -36,7 +37,7 @@ export function createIssue(socket: Socket) {
       });
       return;
     }
-    const dealer = await game.players.findOne({ id: dealerId });
+    const dealer = await UserModel.findOne({ game: gameId, _id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -44,13 +45,15 @@ export function createIssue(socket: Socket) {
       });
       return;
     }
-    await game.issues.addMany([issue]);
-    socket
-      .to(game.id)
-      .emit(SocketResponseEvents.issueCreated, { addedIssue: issue });
+    await issue.save();
+    await game.issues.push(issue);
+    await game.save();
+    socket.to(gameId).emit(SocketResponseEvents.issueCreated, {
+      addedIssue: { ...issue, id: issue._id },
+    });
     acknowledge({
       gameId,
-      issueId: issue.id,
+      issueId: issue._id,
       statusCode: StatusCodes.OK,
     });
   };

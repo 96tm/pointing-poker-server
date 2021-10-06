@@ -1,10 +1,10 @@
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { handleDisconnect } from './resources/routes/socket/handle-disconnect';
 import app from './app';
-import { PORT } from './shared/config';
 import * as socketHandlers from './resources/routes/socket';
+import { handleDisconnect } from './resources/routes/socket/handle-disconnect';
 import { SocketRequestEvents } from './resources/routes/types';
+import { PORT } from './shared/config';
 
 const httpServer = http.createServer(app);
 const socketIOServer = new SocketIOServer(httpServer, {
@@ -60,7 +60,10 @@ socketIOServer.on('connection', (socket) => {
     SocketRequestEvents.leaveGame,
     socketHandlers.leaveGame(socketIOServer)
   );
-  socket.on(SocketRequestEvents.startGame, socketHandlers.startGame(socket));
+  socket.on(
+    SocketRequestEvents.startGame,
+    socketHandlers.startGame(socketIOServer)
+  );
   socket.on(
     SocketRequestEvents.kickPlayer,
     socketHandlers.kickPlayer(socketIOServer)

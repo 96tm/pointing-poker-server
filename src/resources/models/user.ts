@@ -5,7 +5,7 @@ export enum TUserRole {
 }
 
 export interface IUser {
-  id: string;
+  _id: string;
   socketId: string;
   role: TUserRole;
   firstName: string;

@@ -2,6 +2,7 @@ import { StatusCodes } from 'http-status-codes';
 import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
 import { TUserRole } from '../../models/user';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -31,7 +32,7 @@ export function rejectPlayer(socketIOServer: Server) {
   ): Promise<void> => {
     console.log('reject player');
 
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId });
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -39,7 +40,10 @@ export function rejectPlayer(socketIOServer: Server) {
       });
       return;
     }
-    const dealer = await game.players.findOne({ role: TUserRole.dealer });
+    const dealer = await UserModel.findOne({
+      game: gameId,
+      role: TUserRole.dealer,
+    });
     if (!dealer) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,

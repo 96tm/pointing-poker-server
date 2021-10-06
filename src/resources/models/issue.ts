@@ -10,7 +10,7 @@ export enum TIssuePriority {
   high = 'high',
 }
 export interface IIssue {
-  id: string;
+  _id: string;
   title: string;
   priority: TIssuePriority;
   link: string;

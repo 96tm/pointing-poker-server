@@ -1,8 +1,9 @@
 import { StatusCodes } from 'http-status-codes';
 import { Server, Socket } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
-import { IGame } from '../../models/game';
 import { TUserRole } from '../../models/user';
+import { IssueModel } from '../../repository/mongo/entities/issue';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -21,7 +22,7 @@ export function deleteIssue(socketIOServer: Server, socket: Socket) {
     acknowledge: ({ statusCode }: Partial<IDeleteIssueResponseWS>) => void
   ): Promise<void> => {
     console.log('delete issue');
-    const game = (await DataService.Games.findOne({ id: gameId })) as IGame;
+    const game = await DataService.Games.findOne({ _id: gameId });
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -29,7 +30,10 @@ export function deleteIssue(socketIOServer: Server, socket: Socket) {
       });
       return;
     }
-    const issue = await game.issues.findOne({ id: deletedIssueId });
+    const issue = await IssueModel.findOne({
+      game: gameId,
+      _id: deletedIssueId,
+    });
     if (!issue) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -37,7 +41,7 @@ export function deleteIssue(socketIOServer: Server, socket: Socket) {
       });
       return;
     }
-    const dealer = await game.players.findOne({ id: dealerId });
+    const dealer = await UserModel.findOne({ _id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -45,15 +49,15 @@ export function deleteIssue(socketIOServer: Server, socket: Socket) {
       });
       return;
     }
-    await game.issues.deleteOne({ id: deletedIssueId });
-    const issues = await game.issues.getAll();
+    await IssueModel.deleteOne({ game: gameId, _id: deletedIssueId });
+    const issues = await IssueModel.find({ game: gameId });
     if (!issues.length) {
       game.currentIssueId = '';
       socketIOServer
         .in(gameId)
         .emit(SocketResponseEvents.currentIssueChanged, { issueId: '' });
     }
-    socket.to(game.id).emit(SocketResponseEvents.issueDeleted, {
+    socket.to(gameId).emit(SocketResponseEvents.issueDeleted, {
       deletedIssueId,
       title: issue.title,
     });

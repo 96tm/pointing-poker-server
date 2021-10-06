@@ -1,7 +1,8 @@
 import { StatusCodes } from 'http-status-codes';
 import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
-import { TUserRole } from '../../models/user';
+import { IUser, TUserRole } from '../../models/user';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
@@ -16,7 +17,9 @@ export function kickPlayer(socketIOServer: Server) {
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
     console.log('kick player');
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId }).populate(
+      'players'
+    );
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -24,7 +27,7 @@ export function kickPlayer(socketIOServer: Server) {
       });
       return;
     }
-    const player = await game.players.findOne({ id: kickedPlayerId });
+    const player = await UserModel.findOne({ _id: kickedPlayerId });
     if (!player) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -38,7 +41,7 @@ export function kickPlayer(socketIOServer: Server) {
       });
       return;
     }
-    const dealer = await game.players.findOne({ id: dealerId });
+    const dealer = await UserModel.findOne({ _id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -46,10 +49,13 @@ export function kickPlayer(socketIOServer: Server) {
       });
       return;
     }
-    game.players.deleteOne({ id: kickedPlayerId });
+    UserModel.deleteOne({ game: gameId, _id: kickedPlayerId });
+    game.players = (game.players as IUser[]).filter(
+      (player) => player._id !== kickedPlayerId
+    );
     if (game.votingKick) {
       game.votingKick.votingPlayers = game.votingKick.votingPlayers.filter(
-        (player) => player.id !== kickedPlayerId
+        (player: IUser) => player._id !== kickedPlayerId
       );
     }
     socketIOServer.in(gameId).emit(SocketResponseEvents.playerKicked, {

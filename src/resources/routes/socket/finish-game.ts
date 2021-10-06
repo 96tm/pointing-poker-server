@@ -11,7 +11,7 @@ export function finishGame(socketIOServer: Server) {
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
     console.log('finish game');
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await DataService.Games.findOne({ _id: gameId });
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -19,7 +19,7 @@ export function finishGame(socketIOServer: Server) {
       });
       return;
     }
-    const dealer = await game.players.findOne({ id: dealerId });
+    const dealer = await game.players.findOne({ game: gameId, _id: dealerId });
     if (dealer?.role !== TUserRole.dealer) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -27,7 +27,7 @@ export function finishGame(socketIOServer: Server) {
       });
       return;
     }
-    await DataService.Games.deleteOne({ id: gameId });
+    await DataService.Games.deleteOne({ _id: gameId });
     socketIOServer.in(gameId).emit(SocketResponseEvents.gameFinished);
     acknowledge({
       statusCode: StatusCodes.OK,

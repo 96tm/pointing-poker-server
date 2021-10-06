@@ -1,10 +1,15 @@
 import { StatusCodes } from 'http-status-codes';
 import { Server, Socket } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
-import { User } from '../../models/entities/user';
-import { TGameStatus } from '../../models/game';
+import { TGameStatus } from '../../models/types';
 import { IUser, TUserRole } from '../../models/user';
-import { DataService } from '../../services/data-service';
+import { GameModel } from '../../repository/mongo/entities/game';
+import { IIssue, IssueModel } from '../../repository/mongo/entities/issue';
+import {
+  IMessage,
+  MessageModel,
+} from '../../repository/mongo/entities/message';
+import { UserModel } from '../../repository/mongo/entities/user';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
 export interface IAddPlayerResponseWS extends IResponseWS {
@@ -26,7 +31,7 @@ export function addPlayer(socketIOServer: Server, socket: Socket) {
       playerId,
     }: Partial<IAddPlayerResponseWS>) => void
   ): Promise<void> => {
-    const game = await DataService.Games.findOne({ id: gameId });
+    const game = await GameModel.findOne({ _id: gameId }).populate('players');
     if (!game) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -34,7 +39,7 @@ export function addPlayer(socketIOServer: Server, socket: Socket) {
       });
       return;
     }
-    const player = new User({
+    const player = new UserModel({
       firstName,
       lastName,
       image,
@@ -42,7 +47,10 @@ export function addPlayer(socketIOServer: Server, socket: Socket) {
       jobPosition,
       socketId: socket.id,
     });
-    const dealer = await game.players.findOne({ role: TUserRole.dealer });
+    const dealer = await UserModel.findOne({
+      game: gameId,
+      role: TUserRole.dealer,
+    });
     if (!dealer) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
@@ -50,14 +58,14 @@ export function addPlayer(socketIOServer: Server, socket: Socket) {
       });
       return;
     }
-    socket.join(game.id);
+    socket.join(game._id);
     if (
       [TGameStatus.started, TGameStatus.roundInProgress].includes(
         game.status
       ) &&
       !game.settings.autoAdmit
     ) {
-      await game.addEntryRequest(player);
+      await game.addEntryRequest({ ...player, id: player._id });
       socketIOServer
         .to(dealer.socketId)
         .emit(SocketResponseEvents.entryRequested, {
@@ -67,13 +75,21 @@ export function addPlayer(socketIOServer: Server, socket: Socket) {
           jobPosition,
         });
     } else {
-      await game.players.addMany([player]);
-      socket
-        .to(gameId)
-        .emit(SocketResponseEvents.playerAdded, { addedPlayer: player });
-      const players = await game.players.getAll();
-      const messages = await game.messages.getAll();
-      const issues = await game.issues.getAll();
+      await player.save();
+      await game.players.push(player);
+      await game.save();
+      socket.to(gameId).emit(SocketResponseEvents.playerAdded, {
+        addedPlayer: { ...player, id: player._id },
+      });
+      const players = ((await UserModel.find({
+        game: game._id,
+      })) as IUser[]).map((player) => ({ ...player, id: player._id }));
+      const messages = ((await MessageModel.find({
+        game: game._id,
+      })) as IMessage[]).map((message) => ({ ...message, id: message._id }));
+      const issues = ((await IssueModel.find({
+        game: game._id,
+      })) as IIssue[]).map((issue) => ({ ...issue, id: issue._id }));
       socketIOServer.to(socket.id).emit(SocketResponseEvents.playerAdmitted, {
         playerId: player.id,
         players,

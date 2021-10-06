@@ -8,6 +8,13 @@ process.on('uncaughtExceptionMonitor', () => {
   process.exit(UNHANDLED_ERROR_CODE);
 });
 
+// cloudinary.config({
+//   cloud_name: CLOUD_NAME,
+//   api_key: API_KEY,
+//   api_secret: API_SECRET,
+//   secure: true,
+// });
+
 const app = express();
 
 const router = Router();
