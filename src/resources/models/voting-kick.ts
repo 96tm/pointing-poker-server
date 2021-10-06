@@ -1,3 +1,5 @@
+import { IUser } from './user';
+
 export enum TVotingResult {
   accept,
   decline,
@@ -8,13 +10,14 @@ export interface IVotingKick {
   timerHandle?: ReturnType<typeof globalThis.setTimeout>;
   votingPlayerId: string;
   kickedPlayerId: string;
+  inProgress: boolean;
+  votingPlayers: IUser[];
   init: (
     votingPlayerId: string,
     kickedPlayerId: string,
-    numberOfVoters: number
+    votingPlayers: IUser[]
   ) => void;
   reset: () => void;
-  inProgress: boolean;
   getAcceptNumber: () => number;
   getNumberOfVoters: () => number;
   checkResult: () => TVotingResult;
@@ -30,7 +33,7 @@ export class VotingKick implements IVotingKick {
     public kickedPlayerId = '',
     private acceptNumber = 0,
     private declineNumber = 0,
-    private numberOfVoters = 0
+    public votingPlayers: IUser[] = []
   ) {}
 
   get inProgress(): boolean {
@@ -42,17 +45,17 @@ export class VotingKick implements IVotingKick {
   }
 
   getNumberOfVoters(): number {
-    return this.numberOfVoters;
+    return this.votingPlayers.length;
   }
 
   init(
     votingPlayerId: string,
     kickedPlayerId: string,
-    numberOfVoters: number
+    votingPlayers: IUser[]
   ): void {
     this.votingPlayerId = votingPlayerId;
     this.kickedPlayerId = kickedPlayerId;
-    this.numberOfVoters = numberOfVoters;
+    this.votingPlayers = votingPlayers;
   }
 
   reset(): void {
@@ -60,16 +63,28 @@ export class VotingKick implements IVotingKick {
     this.kickedPlayerId = '';
     this.acceptNumber = 0;
     this.declineNumber = 0;
-    this.numberOfVoters = 0;
+    this.votingPlayers = [];
     this.stopTimer();
   }
 
   checkResult(): TVotingResult {
-    const majority = Math.trunc(this.numberOfVoters / 2) + 1;
+    console.log(
+      'check',
+      this.acceptNumber,
+      Math.trunc((this.getNumberOfVoters() + 1) / 2) + 1
+    );
+
+    const majority = Math.trunc((this.getNumberOfVoters() + 1) / 2) + 1;
     if (this.acceptNumber >= majority) {
+      console.log('accept');
       this.reset();
       return TVotingResult.accept;
-    } else if (this.declineNumber >= majority) {
+    } else if (
+      this.acceptNumber + this.declineNumber ===
+      this.getNumberOfVoters()
+    ) {
+      console.log('decline');
+
       this.reset();
       return TVotingResult.decline;
     }

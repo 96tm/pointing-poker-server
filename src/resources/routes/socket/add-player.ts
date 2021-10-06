@@ -1,6 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
 import { Server, Socket } from 'socket.io';
-import { v4 as uuid } from 'uuid';
 import { IClientRequestParameters } from '../../models/api';
 import { User } from '../../models/entities/user';
 import { TGameStatus } from '../../models/game';
@@ -26,7 +25,7 @@ export function addPlayer(socketIOServer: Server, socket: Socket) {
       statusCode,
       playerId,
     }: Partial<IAddPlayerResponseWS>) => void
-  ) => {
+  ): Promise<void> => {
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({
@@ -86,7 +85,6 @@ export function addPlayer(socketIOServer: Server, socket: Socket) {
         gameSettings: game.settings,
       });
     }
-
     acknowledge({
       statusCode: StatusCodes.OK,
       playerId: player.id, //!

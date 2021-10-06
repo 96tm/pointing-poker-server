@@ -24,7 +24,7 @@ export function createGame(socket: Socket) {
       dealerId,
       statusCode,
     }: Partial<IClientCreateGameResult>) => void
-  ) => {
+  ): Promise<void> => {
     const dealer = new User({
       firstName,
       lastName,

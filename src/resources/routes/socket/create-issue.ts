@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { Server, Socket } from 'socket.io';
+import { Socket } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
 import { Issue } from '../../models/entities/issue';
 import { IIssue } from '../../models/issue';
@@ -24,7 +24,7 @@ export function createIssue(socket: Socket) {
       statusCode,
       issueId,
     }: Partial<ICreateIssueResponse>) => void
-  ) => {
+  ): Promise<void> => {
     const games = await DataService.Games.getAll();
     console.log('create issue, game id: ', gameId, games);
     const issue = new Issue({ ...addedIssue });

@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { Server, Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
 import { TUserRole } from '../../models/user';
 import { DataService } from '../../services/data-service';
@@ -14,7 +14,7 @@ export function kickPlayer(socketIOServer: Server) {
   return async (
     { dealerId, kickedPlayerId, gameId }: IClientKickPlayerParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
-  ) => {
+  ): Promise<void> => {
     console.log('kick player');
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
@@ -47,6 +47,11 @@ export function kickPlayer(socketIOServer: Server) {
       return;
     }
     game.players.deleteOne({ id: kickedPlayerId });
+    if (game.votingKick) {
+      game.votingKick.votingPlayers = game.votingKick.votingPlayers.filter(
+        (player) => player.id !== kickedPlayerId
+      );
+    }
     socketIOServer.in(gameId).emit(SocketResponseEvents.playerKicked, {
       kickedPlayerId,
       firstName: player.firstName,

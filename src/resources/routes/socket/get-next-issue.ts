@@ -14,7 +14,7 @@ export function getNextIssue(socketIOServer: Server) {
   return async (
     { dealerId, gameId }: IClientGetNextIssueParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
-  ) => {
+  ): Promise<void> => {
     console.log('get next issue');
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {

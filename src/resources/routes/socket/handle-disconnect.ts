@@ -20,12 +20,20 @@ export function handleDisconnect(socketIOServer: Server, socket: Socket) {
         await DataService.Games.deleteOne({ id: game.id });
         socketIOServer.in(game.id).emit(SocketResponseEvents.gameCancelled);
       } else {
-        await game.players.deleteOne({ socketId: socket.id });
-        socketIOServer.in(game.id).emit(SocketResponseEvents.playerLeft, {
-          playerId: player.id,
-          firstName: player.firstName,
-          lastName: player.lastName,
+        const disconnectedPlayer = await game.players.findOne({
+          socketId: socket.id,
         });
+        await game.players.deleteOne({ socketId: socket.id });
+        if (disconnectedPlayer && game.votingKick) {
+          game.votingKick.votingPlayers = game.votingKick.votingPlayers.filter(
+            (player) => player.id !== disconnectedPlayer.id
+          );
+          socketIOServer.in(game.id).emit(SocketResponseEvents.playerLeft, {
+            playerId: player.id,
+            firstName: player.firstName,
+            lastName: player.lastName,
+          });
+        }
       }
     } catch (error) {
       console.error((error as Error).message);

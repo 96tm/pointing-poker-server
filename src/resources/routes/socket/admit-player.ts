@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { Server, Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
 import { TUserRole } from '../../models/user';
 import { DataService } from '../../services/data-service';
@@ -20,7 +20,7 @@ export function admitPlayer(socketIOServer: Server) {
       statusCode,
       playerId,
     }: Partial<IAdmitPlayerResponseWS>) => void
-  ) => {
+  ): Promise<void> => {
     console.log('admit player');
 
     const game = await DataService.Games.findOne({ id: gameId });

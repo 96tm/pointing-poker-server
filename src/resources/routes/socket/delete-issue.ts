@@ -19,7 +19,7 @@ export function deleteIssue(socketIOServer: Server, socket: Socket) {
   return async (
     { deletedIssueId, gameId, dealerId }: IClientDeleteIssueParameters,
     acknowledge: ({ statusCode }: Partial<IDeleteIssueResponseWS>) => void
-  ) => {
+  ): Promise<void> => {
     console.log('delete issue');
     const game = (await DataService.Games.findOne({ id: gameId })) as IGame;
     if (!game) {

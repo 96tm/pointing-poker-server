@@ -10,7 +10,7 @@ export interface IClientPostMessageParameters extends IClientRequestParameters {
   message: IMessage;
 }
 
-export interface IAddPlayerResponseWS extends IResponseWS {
+export interface IPostMessageResponseWS extends IResponseWS {
   messageId: string;
   gameId: string;
 }
@@ -22,8 +22,8 @@ export function postMessage(socket: Socket) {
       statusCode,
       messageId,
       gameId,
-    }: Partial<IAddPlayerResponseWS>) => void
-  ) => {
+    }: Partial<IPostMessageResponseWS>) => void
+  ): Promise<void> => {
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({

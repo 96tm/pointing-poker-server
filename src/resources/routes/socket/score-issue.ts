@@ -22,7 +22,7 @@ export function scoreIssue(socketIOServer: Server) {
   return async (
     { gameId, issueId, playerId, score }: IClientScoreIssueParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
-  ) => {
+  ): Promise<void> => {
     console.log('score issue', score);
 
     const game = await DataService.Games.findOne({ id: gameId });

@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
 import { TUserRole } from '../../models/user';
 import { DataService } from '../../services/data-service';
@@ -9,11 +9,11 @@ export interface IClientCancelGameParameters extends IClientRequestParameters {
   dealerId: string;
 }
 
-export function cancelGame(socket: Socket) {
+export function cancelGame(socketIOServer: Server) {
   return async (
     { dealerId, gameId }: IClientCancelGameParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
-  ) => {
+  ): Promise<void> => {
     console.log('cancel game');
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
@@ -32,7 +32,7 @@ export function cancelGame(socket: Socket) {
       return;
     }
     await DataService.Games.deleteOne({ id: gameId });
-    socket.to(gameId).emit(SocketResponseEvents.gameCancelled);
+    socketIOServer.in(gameId).emit(SocketResponseEvents.gameCancelled);
     acknowledge({
       statusCode: StatusCodes.OK,
     });

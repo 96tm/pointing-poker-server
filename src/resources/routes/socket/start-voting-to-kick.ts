@@ -20,7 +20,7 @@ export function startVotingToKick(socket: Socket) {
       gameId,
     }: IClientStartVotingToKickParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
-  ) => {
+  ): Promise<void> => {
     console.log('start voting to kick player');
 
     const game = await DataService.Games.findOne({ id: gameId });
@@ -47,19 +47,22 @@ export function startVotingToKick(socket: Socket) {
       return;
     }
     const votingPlayers = players.filter((player) => {
-      return player.role === TUserRole.player;
+      return player.role === TUserRole.player && player.id !== kickedPlayerId;
     });
-    if (votingPlayers.length < MIN_NUMBER_OF_PLAYERS_TO_VOTE) {
+    if (votingPlayers.length + 1 < MIN_NUMBER_OF_PLAYERS_TO_VOTE) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,
         message: 'Not enough players to vote',
       });
-    } else if (!game.votingKick.inProgress) {
-      game.votingKick.init(
-        votingPlayerId,
-        kickedPlayerId,
-        votingPlayers.length
-      );
+    } else if (game.votingKick.inProgress) {
+      console.log('voting in progress');
+
+      acknowledge({
+        statusCode: StatusCodes.CONFLICT,
+        message: 'Voting in progress, please wait until it ends and try again',
+      });
+    } else {
+      game.votingKick.init(votingPlayerId, kickedPlayerId, votingPlayers);
       game.votingKick.voteFor();
       socket.to(gameId).emit(SocketResponseEvents.votingToKickStarted, {
         votingPlayerId,
@@ -67,11 +70,6 @@ export function startVotingToKick(socket: Socket) {
       });
       acknowledge({
         statusCode: StatusCodes.OK,
-      });
-    } else {
-      acknowledge({
-        statusCode: StatusCodes.CONFLICT,
-        message: 'Voting in progress, please wait until it ends and try again',
       });
     }
   };

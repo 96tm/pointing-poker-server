@@ -12,7 +12,7 @@ export function leaveGame(socketIOServer: Server) {
   return async (
     { playerId, gameId }: IClientLeaveGameParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
-  ) => {
+  ): Promise<void> => {
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({
@@ -31,6 +31,11 @@ export function leaveGame(socketIOServer: Server) {
       return;
     }
     await game.players.deleteOne({ id: playerId });
+    if (game.votingKick) {
+      game.votingKick.votingPlayers = game.votingKick.votingPlayers.filter(
+        (player) => player.id !== playerId
+      );
+    }
     socketIOServer.in(gameId).emit(SocketResponseEvents.playerLeft, {
       playerId,
       firstName: player.firstName,

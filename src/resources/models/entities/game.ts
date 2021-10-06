@@ -125,6 +125,15 @@ export class Game implements IDocument, IGame {
     }
   }
 
+  // async deleteOnePlayer(playerId: string): Promise<void> {
+  //   await this.players.deleteOne({ id: playerId });
+  //   if (this.votingKick) {
+  //     this.votingKick.votingPlayers = this.votingKick.votingPlayers.filter(
+  //       (player) => player.id !== playerId
+  //     );
+  //   }
+  // }
+
   async finishRound(): Promise<void> {
     if (this.roundTimerHandle) {
       clearTimeout(this.roundTimerHandle);

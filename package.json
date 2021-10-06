@@ -12,7 +12,7 @@
     "watch-node": "nodemon dist/index.js",
     "watch-ts": "npx tsc -w",
     "lint": "eslint --ext .ts --fix src",
-    "dev": "nodemon -L --exitcrash --ignore node_modules -w 'src/**/*.ts' --exec ts-node src/server.ts",
+    "dev": "nodemon --watch --verbose -L --exitcrash --ignore node_modules -w 'src/**/*.ts' src/server.ts",
     "test": "npx jest",
     "test:coverage": "jest --coverage"
   },

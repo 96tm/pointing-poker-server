@@ -1,13 +1,13 @@
 import { StatusCodes } from 'http-status-codes';
 import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
-import { TUserRole } from '../../models/user';
+import { User } from '../../models/entities/user';
+import { IUser, TUserRole } from '../../models/user';
 import { TVotingResult } from '../../models/voting-kick';
 import { DataService } from '../../services/data-service';
 import { IResponseWS, SocketResponseEvents } from '../types';
 
 export interface IClientVoteToKickParameters extends IClientRequestParameters {
-  votingPlayerId: string;
   kickedPlayerId: string;
   accept: string;
 }
@@ -16,7 +16,7 @@ export function voteToKick(socketIOServer: Server) {
   return async (
     { kickedPlayerId, accept, gameId }: IClientVoteToKickParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
-  ) => {
+  ): Promise<void> => {
     console.log('vote to kick player');
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
@@ -42,7 +42,17 @@ export function voteToKick(socketIOServer: Server) {
     }
     if (game.votingKick.inProgress) {
       accept ? game.votingKick.voteFor() : game.votingKick.voteAgainst();
-      if (game.votingKick.checkResult() === TVotingResult.accept) {
+      console.log('vote ', game.votingKick);
+      const votingPlayer = await game.players.findOne({
+        id: game.votingKick.votingPlayerId,
+      });
+      let playerInfo: IUser | undefined;
+      if (votingPlayer) {
+        playerInfo = new User(votingPlayer);
+        console.log('found player', playerInfo);
+      }
+      const result = game.votingKick.checkResult();
+      if (result === TVotingResult.accept) {
         await game.players.deleteMany({ id: kickedPlayerId });
         socketIOServer
           .in(gameId)
@@ -57,19 +67,25 @@ export function voteToKick(socketIOServer: Server) {
         acknowledge({
           statusCode: StatusCodes.OK,
         });
-      } else if (game.votingKick.checkResult() === TVotingResult.decline) {
-        socketIOServer
-          .in(gameId)
-          .emit(SocketResponseEvents.playerNotKickedByVote, {
-            kickedPlayerId,
-            firstName: player.firstName,
-            lastname: player.lastName,
-            acceptNumber: game.votingKick.getAcceptNumber(),
-            numberOfPlayers: game.votingKick.getAcceptNumber(),
+      } else if (result === TVotingResult.decline) {
+        console.log('decline here');
+        if (playerInfo) {
+          console.log('playerInfo', playerInfo, 'player', player);
+          console.log('bf emit');
+          socketIOServer
+            .to(gameId)
+            .except(player.socketId)
+            .emit(SocketResponseEvents.playerNotKickedByVote, {
+              kickedPlayerId,
+              firstName: player.firstName,
+              lastname: player.lastName,
+              acceptNumber: game.votingKick.getAcceptNumber(),
+              numberOfPlayers: game.votingKick.getAcceptNumber(),
+            });
+          acknowledge({
+            statusCode: StatusCodes.OK,
           });
-        acknowledge({
-          statusCode: StatusCodes.OK,
-        });
+        }
       } else {
         socketIOServer.in(gameId).emit(SocketResponseEvents.votedToKick, {
           kickedPlayerId,

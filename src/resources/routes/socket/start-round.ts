@@ -15,7 +15,7 @@ export function startRound(socketIOServer: Server) {
   return async (
     { dealerId, gameId }: IClientStartRoundParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
-  ) => {
+  ): Promise<void> => {
     console.log('start round', dealerId);
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
