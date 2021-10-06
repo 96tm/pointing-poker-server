@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import { IClientRequestParameters } from '../../models/api';
 import { TGameStatus } from '../../models/game';
 import { IGameSettings } from '../../models/game-settings';
@@ -12,7 +12,7 @@ export interface IClientStartGameParameters extends IClientRequestParameters {
   dealerId: string;
 }
 
-export function startGame(socket: Socket) {
+export function startGame(socketIOServer: Server) {
   return async (
     { dealerId, settings, gameId }: IClientStartGameParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
@@ -38,7 +38,9 @@ export function startGame(socket: Socket) {
       });
       return;
     }
-    socket.to(gameId).emit(SocketResponseEvents.gameStarted, { settings });
+    socketIOServer
+      .in(gameId)
+      .emit(SocketResponseEvents.gameStarted, { settings });
     acknowledge({
       statusCode: StatusCodes.OK,
     });

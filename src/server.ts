@@ -60,7 +60,10 @@ socketIOServer.on('connection', (socket) => {
     SocketRequestEvents.leaveGame,
     socketHandlers.leaveGame(socketIOServer)
   );
-  socket.on(SocketRequestEvents.startGame, socketHandlers.startGame(socket));
+  socket.on(
+    SocketRequestEvents.startGame,
+    socketHandlers.startGame(socketIOServer)
+  );
   socket.on(
     SocketRequestEvents.kickPlayer,
     socketHandlers.kickPlayer(socketIOServer)
