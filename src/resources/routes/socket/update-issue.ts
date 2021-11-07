@@ -16,8 +16,6 @@ export function updateIssue(socket: Socket) {
     { updatedIssue, dealerId, gameId }: IClientUpdateIssueParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
-    console.log('update issue');
-
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({

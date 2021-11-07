@@ -12,7 +12,6 @@ interface IClientCreateGameResult extends IResponseWS {
   gameId: string;
   dealerId: string;
 }
-// !add validation
 
 export function createGame(socket: Socket) {
   return async (
@@ -40,7 +39,6 @@ export function createGame(socket: Socket) {
       dealerSocketId: socket.id,
     });
     await DataService.Games.addMany([game]);
-    console.log('create game', game.id);
     socket.join(game.id);
 
     acknowledge({

@@ -15,7 +15,6 @@ export function kickPlayer(socketIOServer: Server) {
     { dealerId, kickedPlayerId, gameId }: IClientKickPlayerParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
-    console.log('kick player');
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({

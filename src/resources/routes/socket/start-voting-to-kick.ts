@@ -21,8 +21,6 @@ export function startVotingToKick(socket: Socket) {
     }: IClientStartVotingToKickParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
-    console.log('start voting to kick player');
-
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({
@@ -55,8 +53,6 @@ export function startVotingToKick(socket: Socket) {
         message: 'Not enough players to vote',
       });
     } else if (game.votingKick.inProgress) {
-      console.log('voting in progress');
-
       acknowledge({
         statusCode: StatusCodes.CONFLICT,
         message: 'Voting in progress, please wait until it ends and try again',

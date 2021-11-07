@@ -68,23 +68,14 @@ export class VotingKick implements IVotingKick {
   }
 
   checkResult(): TVotingResult {
-    console.log(
-      'check',
-      this.acceptNumber,
-      Math.trunc((this.getNumberOfVoters() + 1) / 2) + 1
-    );
-
-    const majority = Math.trunc((this.getNumberOfVoters() + 1) / 2) + 1;
+    const majority = Math.trunc(this.getNumberOfVoters() / 2) + 1;
     if (this.acceptNumber >= majority) {
-      console.log('accept');
       this.reset();
       return TVotingResult.accept;
     } else if (
       this.acceptNumber + this.declineNumber ===
       this.getNumberOfVoters()
     ) {
-      console.log('decline');
-
       this.reset();
       return TVotingResult.decline;
     }

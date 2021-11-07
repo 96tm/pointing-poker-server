@@ -17,7 +17,6 @@ export function startGame(socketIOServer: Server) {
     { dealerId, settings, gameId }: IClientStartGameParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
-    console.log('start game');
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({

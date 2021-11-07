@@ -14,7 +14,6 @@ export function finishRound(socketIOServer: Server) {
     { dealerId, gameId }: IClientFinishRoundParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
-    console.log('finish round');
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({

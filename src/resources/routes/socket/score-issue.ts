@@ -23,8 +23,6 @@ export function scoreIssue(socketIOServer: Server) {
     { gameId, issueId, playerId, score }: IClientScoreIssueParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
-    console.log('score issue', score);
-
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({
@@ -61,12 +59,10 @@ export function scoreIssue(socketIOServer: Server) {
       });
       return;
     }
-    // !
     if (
       numberOfActivePlayers === numberOfScores &&
       game.settings.autoFlipCards
     ) {
-      console.log('round finished');
       await game.finishRound();
       socketIOServer.in(gameId).emit(SocketResponseEvents.roundFinished, {
         issueId,

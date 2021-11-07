@@ -22,7 +22,6 @@ export function leaveGame(socketIOServer: Server) {
       return;
     }
     const player = await game.players.findOne({ id: playerId });
-    console.log('leave game', playerId);
     if (!player) {
       acknowledge({
         statusCode: StatusCodes.BAD_REQUEST,

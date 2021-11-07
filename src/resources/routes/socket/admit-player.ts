@@ -21,8 +21,6 @@ export function admitPlayer(socketIOServer: Server) {
       playerId,
     }: Partial<IAdmitPlayerResponseWS>) => void
   ): Promise<void> => {
-    console.log('admit player');
-
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({

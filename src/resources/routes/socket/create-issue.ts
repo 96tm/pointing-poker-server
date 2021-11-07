@@ -25,8 +25,6 @@ export function createIssue(socket: Socket) {
       issueId,
     }: Partial<ICreateIssueResponse>) => void
   ): Promise<void> => {
-    const games = await DataService.Games.getAll();
-    console.log('create issue, game id: ', gameId, games);
     const issue = new Issue({ ...addedIssue });
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {

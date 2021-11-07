@@ -16,7 +16,6 @@ export function changeCurrentIssue(socketIOServer: Server) {
     { issueId, dealerId, gameId }: IClientChangeCurrentIssueParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
-    console.log('change current issue');
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({

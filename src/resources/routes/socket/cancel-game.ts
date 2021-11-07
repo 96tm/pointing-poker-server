@@ -14,7 +14,6 @@ export function cancelGame(socketIOServer: Server) {
     { dealerId, gameId }: IClientCancelGameParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
-    console.log('cancel game');
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({

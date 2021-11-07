@@ -10,7 +10,6 @@ export function finishGame(socketIOServer: Server) {
     { dealerId, gameId }: IClientFinishGameParameters,
     acknowledge: ({ statusCode }: IResponseWS) => void
   ): Promise<void> => {
-    console.log('finish game');
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({

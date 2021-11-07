@@ -29,8 +29,6 @@ export function rejectPlayer(socketIOServer: Server) {
       jobPosition,
     }: Partial<IRejectPlayerResponseWS>) => void
   ): Promise<void> => {
-    console.log('reject player');
-
     const game = await DataService.Games.findOne({ id: gameId });
     if (!game) {
       acknowledge({
